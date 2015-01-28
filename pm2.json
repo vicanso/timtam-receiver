@@ -1,0 +1,13 @@
+{
+  "name" : "jtlog_server",
+  "instances" : 1,
+  "merge_logs" : true,
+  "script" : "app.js",
+  "log_file" : "/vicanso/log/jtlog_server.log",
+  "error_file" : "/vicanso/log/jtlog_server-error.log",
+  "out_file" : "/vicanso/log/jtlog_server-out.log",
+  "env": {
+    "NODE_ENV": "production",
+    "address" : "127.0.0.1:2900"
+  }
+}
