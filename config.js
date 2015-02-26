@@ -4,3 +4,7 @@ exports.haproxy = {
     return msg.indexOf('[HAPROXY]') !== -1;
   }
 };
+
+exports.base = {
+  path : '/vicanso/log'
+};

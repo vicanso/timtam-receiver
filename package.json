@@ -7,7 +7,7 @@
     "email": "vicansocanbico@gmail.com"
   },
   "dependencies": {
-    "jtlogger": "0.0.6",
+    "jtlogger": "0.1.2",
     "lodash": "^3.0.0",
     "mkdirp": "^0.5.0",
     "zmq": "^2.10.0"
