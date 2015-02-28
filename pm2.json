@@ -4,6 +4,7 @@
   "merge_logs" : true,
   "max_memory_restart" : "200M",
   "script" : "app.js",
+  "exec_mode" : "fork",
   "log_file" : "/vicanso/pm2/log/jtlog_server.log",
   "error_file" : "/vicanso/pm2/log/jtlog_server-error.log",
   "out_file" : "/vicanso/pm2/log/jtlog_server-out.log",
