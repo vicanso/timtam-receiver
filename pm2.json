@@ -2,14 +2,12 @@
   "name" : "jtlog_server",
   "instances" : 1,
   "merge_logs" : true,
-  "max-memory-restart" : "100M",
+  "max_memory_restart" : "200M",
   "script" : "app.js",
   "log_file" : "/vicanso/pm2/log/jtlog_server.log",
   "error_file" : "/vicanso/pm2/log/jtlog_server-error.log",
   "out_file" : "/vicanso/pm2/log/jtlog_server-out.log",
   "env": {
-    "NODE_ENV": "production",
-    "udp" : "127.0.0.1:2900",
-    "zmq" : "127.0.0.1:2910"
+    "NODE_ENV": "production"
   }
 }

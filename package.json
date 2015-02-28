@@ -1,15 +1,16 @@
 {
   "name": "jtlog_server",
   "description": "node log server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": {
     "name": "vicanso 小墨鱼",
     "email": "vicansocanbico@gmail.com"
   },
   "dependencies": {
-    "jtlogger": "0.1.2",
-    "lodash": "^3.0.0",
+    "jtlogger": "0.1.4",
+    "lodash": "^3.3.1",
     "mkdirp": "^0.5.0",
+    "request": "^2.53.0",
     "zmq": "^2.10.0"
   }
 }
