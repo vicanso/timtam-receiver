@@ -1,0 +1,1 @@
+exports.logPath = '/vicanso/log_backup';
