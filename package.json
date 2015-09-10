@@ -1,21 +1,27 @@
 {
-  "name": "jtlog_server",
-  "description": "node log server",
-  "version": "0.0.2",
+  "name": "timtam",
+  "description": "node.js udp log server",
+  "version": "0.0.1",
   "author": {
     "name": "vicanso 小墨鱼",
     "email": "vicansocanbico@gmail.com"
   },
-  "dependencies": {
-    "debug": "^2.1.1",
-    "jtlogger": "0.1.4",
-    "lodash": "^3.3.1",
-    "mkdirp": "^0.5.0",
-    "request": "^2.53.0",
-    "zmq": "^2.10.0"
+  "keywords": [
+    "log",
+    "udp"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vicanso/timtam.git"
   },
-  "devDependencies": {
-    "gulp": "^3.8.11",
-    "gulp-jshint": "^1.9.2"
-  }
+  "main": "app",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "lodash": "^3.10.1",
+    "mkdirp": "^0.5.1",
+    "moment": "^2.10.6"
+  },
+  "devDependencies": {},
+  "readme": "node.js udp log server"
 }

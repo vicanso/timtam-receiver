@@ -1,1 +1,1 @@
-exports.logPath = '/vicanso/log_backup';
+exports.logPath = process.env.LOG_PATH || '/var/log';
