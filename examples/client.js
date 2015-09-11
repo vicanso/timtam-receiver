@@ -2,10 +2,20 @@
 const dgram = require('dgram');
 const client = dgram.createSocket("udp4");
 
-setInterval(function() {
-  let message = new Buffer('  APP-NAME' + Math.random() + '\n');
+function log() {
+  let str = '';
+  for (var i = 0; i < 100; i++) {
+    str += Math.random();
+  }
+  let message = new Buffer('  APP-NAME' + str + '\n');
+  console.dir(message.length);
   client.send(message, 0, message.length, 2000, '127.0.0.1', function(
-    argument) {
-    // body...
+    err) {
+    console.dir(err);
   });
-}, 1000);
+}
+// setInterval(function() {
+//   log();
+// }, 1000);
+
+log();
