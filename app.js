@@ -4,7 +4,7 @@ const server = dgram.createSocket("udp4");
 const path = require('path');
 const logger = require('./lib/logger');
 const pkg = require('./package');
-
+initLog();
 server.on('error', function(err) {
   console.error(err);
 });

@@ -1,2 +1,2 @@
-exports.logPath = process.env.LOG_PATH || '/var/log';
-exports.backupPath = process.env.BACKUP_PATH || '/var/log-backup';
+exports.logPath = process.env.LOG_PATH || '/data/log';
+exports.backupPath = process.env.BACKUP_PATH || '/data/log-backup';
