@@ -8,9 +8,8 @@ server.on('error', function(err) {
 });
 
 server.on('message', function(buf, rinfo) {
-  let name = buf.toString('utf8', 0, nameLength).trim();
-  let msg = buf.toString('utf8', nameLength);
-  logger.write(name, msg)
+  let data = JSON.parse(buf.toString());
+  logger.write(data.tag, data.log)
 });
 
 server.on('listening', function() {
@@ -18,4 +17,4 @@ server.on('listening', function() {
   console.log('server listening ' + address.address + ':' + address.port);
 });
 
-server.bind(2000);
+server.bind(6000);
