@@ -18,6 +18,7 @@
   "main": "app",
   "readmeFilename": "README.md",
   "dependencies": {
+    "jtlogger": "^0.1.6",
     "lodash": "^3.10.1",
     "mkdirp": "^0.5.1",
     "moment": "^2.10.6"
