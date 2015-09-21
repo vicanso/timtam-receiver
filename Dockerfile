@@ -1,4 +1,4 @@
-FROM vicanso/node
+FROM vicanso/zmq
 
 MAINTAINER "vicansocanbico@gmail.com"
 

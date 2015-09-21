@@ -1,3 +1,4 @@
+"use strict";
 const pkg = require('./package');
 const url = require('url');
 
@@ -13,4 +14,4 @@ exports.app = pkg.name;
 
 exports.consul = url.parse(process.env.CONSUL || 'http://127.0.0.1:8500');
 
-exports.zmq = process.env.ZMQ;
+exports.zmqPort = process.env.ZMQ_PORT || 6010;

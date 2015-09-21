@@ -72,6 +72,9 @@ function* register() {
     throw new Error('can not get address');
   }
   let tags = ['udp-log', config.env];
+  if (config.zmq) {
+    tags.push('zmq');
+  }
   yield consul.register({
     id: hostName,
     service: config.app,
