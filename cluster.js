@@ -2,33 +2,29 @@
 const spawn = require('child_process').spawn;
 const path = require('path');
 const execFile = path.join(__dirname, 'app.js');
-console.dir(execFile);
+const config = require('./config');
+const _ = require('lodash');
 
-const cmd = spawn('node', [execFile]);
-
-cmd.stdout.on('data', function (data) {
-  console.info(data.toString());
+_.forEach(config.ports, function(port) {
+  let args = [execFile].concat(process.argv.slice(2));
+  args.push('-p', port);
+  run(args)
 });
 
-cmd.stderr.on('data', function (data) {
-  console.error(data.toString());
-});
 
-cmd.on('close', function (code) {
-  console.info('child_process exited with code ' + code);
-});
+function run(args) {
+  let cmd = spawn('node', args);
 
-// var spawn = require('child_process').spawn,
-//     ls    = spawn('ls', ['-lh', '/usr']);
-//
-// ls.stdout.on('data', function (data) {
-//   console.log('stdout: ' + data);
-// });
-//
-// ls.stderr.on('data', function (data) {
-//   console.log('stderr: ' + data);
-// });
-//
-// ls.on('close', function (code) {
-//   console.log('child process exited with code ' + code);
-// });
+  cmd.stdout.on('data', function(data) {
+    console.info(data.toString());
+  });
+
+  cmd.stderr.on('data', function(data) {
+    console.error(data.toString());
+  });
+
+  cmd.on('close', function(code) {
+    console.info('child_process exited with code ' + code);
+    run(args);
+  });
+}

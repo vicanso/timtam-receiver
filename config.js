@@ -1,17 +1,51 @@
 "use strict";
 const pkg = require('./package');
+const program = require('commander');
 const url = require('url');
+const _ = require('lodash');
 
-exports.logPath = process.env.LOG_PATH || '/data/log';
+function convertPort(v, defaultValue) {
+  if (v) {
+    return parseInt(v);
+  } else {
+    return defaultValue;
+  }
+}
 
-exports.backupPath = process.env.BACKUP_PATH || '/data/log-backup';
+function list(v, defaultValue) {
+  return (v || defaultValue).split(',');
+}
 
-exports.port = process.env.PORT || 6000;
+program
+  .version(pkg.version)
+  .option('-l, --logPath <path>', 'log path', '/data/log')
+  .option('-p, --port <n>', 'udp port', convertPort, 6000)
+  .option('--ports <items>', 'udp port list', list, '6000,6001')
+  .option('--zmq <n>', 'zmq port', convertPort, 6010)
+  .parse(process.argv);
 
-exports.env = process.env.NODE_ENV || 'development';
+_.forEach('logPath port zmq ports'.split(' '), function(name) {
+  exports[name] = program[name];
+});
 
 exports.app = pkg.name;
+exports.enableZmq = false;
 
-exports.zmqPort = process.env.ZMQ_PORT || 6010;
+// console.log(' size: %j', program.size);
+// console.log(' drink: %j', program.drink);
 
-exports.enableZmq = process.env.ZMQ !== 'disable';
+console.dir(exports);
+
+// exports.logPath = process.env.LOG_PATH || '/data/log';
+//
+// exports.backupPath = process.env.BACKUP_PATH || '/data/log-backup';
+//
+// exports.port = process.env.PORT || 6000;
+//
+// exports.env = process.env.NODE_ENV || 'development';
+//
+// exports.app = pkg.name;
+//
+// exports.zmqPort = process.env.ZMQ_PORT || 6010;
+//
+// exports.enableZmq = process.env.ZMQ !== 'disable';
