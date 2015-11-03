@@ -120,6 +120,9 @@ function write(tag, msg) {
     stream = new FileStream(options);
     streamDict[tag] = stream;
   }
+  if(_.isObject(msg)){
+    msg = JSON.stringify(msg);
+  }
   stream.write(msg);
 }
 
