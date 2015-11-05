@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Code coverage report for lib/logger.js</title>
+    <title>Code coverage report for lib/receiver.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -16,13 +16,13 @@
 <div class='wrapper'>
   <div class='pad1'>
     <h1>
-      <a href="../index.html">all files</a> / <a href="index.html">lib/</a> logger.js
+      <a href="../index.html">all files</a> / <a href="index.html">lib/</a> receiver.js
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">64.15% </span>
+        <span class="strong">72.22% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>34/53</span>
+        <span class='fraction'>39/54</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">35.71% </span>
@@ -30,14 +30,14 @@
         <span class='fraction'>5/14</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">61.54% </span>
+        <span class="strong">76.92% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>8/13</span>
+        <span class='fraction'>10/13</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">64.15% </span>
+        <span class="strong">72.22% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>34/53</span>
+        <span class='fraction'>39/54</span>
       </div>
       <div class='fl pad1y'>
         <span class="strong">1 statement, 1 function</span>
@@ -161,7 +161,8 @@
 112
 113
 114
-115</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+115
+116</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1×</span>
 <span class="cline-any cline-yes">1×</span>
 <span class="cline-any cline-yes">1×</span>
@@ -218,12 +219,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1×</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -234,6 +231,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -241,9 +242,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -331,9 +333,9 @@ function bindUDP(port, host) {
  * @param  {[type]} host [description]
  * @return {[type]}      [description]
  */
-<span class="fstat-no" title="function not covered" >function bindTCP(port, host) {</span>
-<span class="cstat-no" title="statement not covered" >	const net = require('net');</span>
-<span class="cstat-no" title="statement not covered" >	const server = net.createServer(<span class="fstat-no" title="function not covered" >function(c) {</span> //'connection' listener</span>
+function bindTCP(port, host) {
+	const net = require('net');
+	const server = net.createServer(<span class="fstat-no" title="function not covered" >function(c) {</span> //'connection' listener
 <span class="cstat-no" title="statement not covered" >		console.info('client connected');</span>
 <span class="cstat-no" title="statement not covered" >		c.on('end', <span class="fstat-no" title="function not covered" >function() {</span></span>
 <span class="cstat-no" title="statement not covered" >			console.info('client disconnected');</span>
@@ -355,9 +357,10 @@ function bindUDP(port, host) {
 			}
 		});
 	});
-<span class="cstat-no" title="statement not covered" >	server.listen(port, host, <span class="fstat-no" title="function not covered" >function() {</span></span>
-<span class="cstat-no" title="statement not covered" >		console.info('server listening ' + host + ':' + port);</span>
+	server.listen(port, host, function() {
+		console.info('server listening ' + host + ':' + port);
 	});
+	return server;
 }
 &nbsp;
 /**
@@ -395,7 +398,7 @@ exports.removeTransport = removeTransport;</pre></td></tr>
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 05 2015 17:12:58 GMT+0800 (CST)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 05 2015 17:17:28 GMT+0800 (CST)
 </div>
 </div>
 <script src="../prettify.js"></script>

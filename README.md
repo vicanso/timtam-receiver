@@ -53,6 +53,13 @@ const timtam = require('timtam');
 timtam.bindUDP(6000);
 ```
 
+### bindTCP
+
+```js
+const timtam = require('timtam');
+timtam.bindTCP(6000);
+```
+
 ## License
 
 MIT
