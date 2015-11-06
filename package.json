@@ -1,7 +1,7 @@
 {
-  "name": "timtam",
+  "name": "timtam-receiver",
   "description": "timtam log receiver",
-  "version": "0.0.5",
+  "version": "0.0.1",
   "author": {
     "name": "vicanso 小墨鱼",
     "email": "vicansocanbico@gmail.com"
@@ -13,15 +13,14 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vicanso/timtam.git"
+    "url": "https://github.com/vicanso/timtam-receiver.git"
   },
   "main": "./lib/receiver",
   "readmeFilename": "README.md",
   "dependencies": {
     "linebyline": "^1.1.0",
     "lodash": "^3.10.1",
-    "mkdirp": "^0.5.1",
-    "moment": "^2.10.6"
+    "mkdirp": "^0.5.1"
   },
   "devDependencies": {
     "del": "^2.0.2",

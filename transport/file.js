@@ -1,7 +1,6 @@
 'use strict';
 const path = require('path');
 const mkdirp = require('mkdirp');
-const moment = require('moment');
 const _ = require('lodash');
 const fs = require('fs');
 const zlib = require('zlib');
@@ -117,53 +116,17 @@ class FileStream {
 	 * @return {[type]}            [description]
 	 */
 	static count(app, date, conditions) {
-		let getFile = function(app, date, cb) {
-			let file = path.join(exports.logPath, app, date + '.log');
-			fs.stat(file, function(err) {
-				if (!err) {
-					cb(null, file);
-				} else {
-					file += '.gz';
-					fs.stat(file, function(err) {
-						if (err) {
-							cb(err);
-						} else {
-							cb(null, fs.createReadStream(file).pipe(zlib.createGunzip()));
-						}
-					});
-				}
-			});
-		};
-
 		return new Promise(function(resolve, reject) {
-			getFile(app, date, function(err, file) {
-				if (err) {
-					reject(err);
-					return;
-				}
+			getFile(app, date).then(function(file) {
 				const readline = require('linebyline');
 				let r = readline(file);
 				let count = 0;
-				let validate;
-				if (conditions) {
-					let beginDate = _.get(conditions, 'date.$gte', date + 'T00:00:00.000Z');
-					let endDate = _.get(conditions, 'date.$lte', date + 'T24:00:00.000Z');
-					let reg = conditions.reg;
-					validate = function(data) {
-						let date = data.date;
-						let message = data.message;
-						if (date < beginDate || date > endDate) {
-							return false;
-						} else if (reg) {
-							return new RegExp(reg, 'i').test(message);
-						}
-						return true;
-					};
-				}
+				let validate = getValidate(conditions);
+
 				r.on('end', function() {
 					resolve(count);
 				});
-				r.on('line', function(str, t, byteCount) {
+				r.on('line', function(str) {
 					if (!validate) {
 						count++;
 					} else {
@@ -174,8 +137,7 @@ class FileStream {
 					}
 				});
 				r.on('error', reject);
-			})
-
+			}, reject);
 		});
 	}
 
@@ -187,8 +149,7 @@ class FileStream {
 			let gzip = zlib.createGzip();
 			readStream.pipe(gzip).pipe(writeStream);
 			writeStream.on('finish', function() {
-				// fs.unlink(file, resolve);
-				resolve();
+				fs.unlink(file, resolve);
 			});
 			writeStream.on('error', reject);
 		});
@@ -196,21 +157,43 @@ class FileStream {
 }
 
 
-// setTimeout(function() {
-// 	FileStream.archive('test', '2015-11-06').then(function() {
-// 			console.dir('finished');
-// 		},
-// 		function(err) {
-// 			console.dir(err);
-// 		});
-// 	// console.time('count');
-// 	// FileStream.count('test', '2015-11-06').then(function(count) {
-// 	// 	console.timeEnd('count');
-// 	// 	console.dir(count);
-// 	// }, function(err) {
-// 	// 	console.dir(err.stack);
-// 	// });
-// }, 1000);
+function getFile(app, date) {
+	let file = path.join(exports.logPath, app, date + '.log');
+	return new Promise(function(resolve, reject) {
+		fs.stat(file, function(err) {
+			if (!err) {
+				return resolve(file);
+			}
+			file += '.gz';
+			fs.stat(file, function(err) {
+				if (!err) {
+					return resolve(fs.createReadStream(file).pipe(zlib.createGunzip()));
+				}
+				reject(err);
+			});
+		});
+	});
+}
+
+function getValidate(conditions) {
+	if (!conditions) {
+		return;
+	}
+	let beginDate = _.get(conditions, 'date.$gte', date + 'T00:00:00.000Z');
+	let endDate = _.get(conditions, 'date.$lte', date + 'T24:00:00.000Z');
+	let reg = conditions.reg;
+	return function(data) {
+		let date = data.date;
+		let message = data.message;
+		if (date < beginDate || date > endDate) {
+			return false;
+		} else if (reg) {
+			return new RegExp(reg, 'i').test(message);
+		}
+		return true;
+	};
+}
+
 
 
 /**
@@ -265,3 +248,7 @@ exports.checkFileNameInterval = 10 * 1000;
 exports.flushInterval = 5 * 1000;
 // 关闭日志写入流
 exports.close = close;
+
+exports.archive = FileStream.archive;
+
+exports.count = FileStream.count;
