@@ -18,8 +18,8 @@ receiver.bindUDP(6000);
 
 // });
 
-fileTransport.count('test', '2015-11-06').then(function(count) {
-	console.dir(count);
-}, function(err) {
+// fileTransport.count('test', '2015-11-06').then(function(count) {
+// 	console.dir(count);
+// }, function(err) {
 
-});
+// });

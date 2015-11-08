@@ -28,9 +28,10 @@ class FileStream {
 		let file = this._getFileName();
 		/* istanbul ignore if */
 		if (this.file !== file) {
+			this.close();
 			let oldFile = this.file;
 			this.file = file;
-			this.close();
+			FileStream.archive(options.app, oldFile);
 		}
 		let timer = _.delay(this.checkFileName.bind(this), options.checkFileNameInterval);
 		timer.unref();
@@ -117,7 +118,7 @@ class FileStream {
 	 */
 	static count(app, date, conditions) {
 		return new Promise(function(resolve, reject) {
-			getFile(app, date).then(function(file) {
+			getReadLineFile(app, date).then(function(file) {
 				const readline = require('linebyline');
 				let r = readline(file);
 				let count = 0;
@@ -141,23 +142,27 @@ class FileStream {
 		});
 	}
 
-	static archive(app, date) {
+	static archive(app, filename) {
+		if (!app && !date) {
+			throw new Error('app and filename can both be null');
+		}
+		let file = app;
+		if (filename) {
+			file = path.join(exports.logPath, app, filename);
+		}
 		return new Promise(function(resolve, reject) {
-			let file = path.join(exports.logPath, app, date + '.log');
 			let readStream = fs.createReadStream(file);
 			let writeStream = fs.createWriteStream(file + '.gz');
 			let gzip = zlib.createGzip();
 			readStream.pipe(gzip).pipe(writeStream);
-			writeStream.on('finish', function() {
-				fs.unlink(file, resolve);
-			});
+			writeStream.on('finish', resolve);
 			writeStream.on('error', reject);
 		});
 	}
 }
 
 
-function getFile(app, date) {
+function getReadLineFile(app, date) {
 	let file = path.join(exports.logPath, app, date + '.log');
 	return new Promise(function(resolve, reject) {
 		fs.stat(file, function(err) {
