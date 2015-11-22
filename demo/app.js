@@ -1,7 +1,7 @@
 'use strict';
 const receiver = require('..');
 const path = require('path');
-const timtamMongo = require('../../timtam-mongo');
+const timtamMongo = require('timtam-mongo');
 const fileTransport = receiver.transports.file;
 
 fileTransport.logPath = path.join(__dirname, 'logs');

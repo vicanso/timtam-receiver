@@ -1,7 +1,7 @@
 {
   "name": "timtam-receiver",
   "description": "timtam log receiver",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": {
     "name": "vicanso 小墨鱼",
     "email": "vicansocanbico@gmail.com"
@@ -28,7 +28,8 @@
     "gulp-istanbul": "^0.10.2",
     "gulp-jshint": "^1.11.2",
     "gulp-mocha": "^2.1.3",
-    "moment": "^2.10.6"
+    "moment": "^2.10.6",
+    "timtam-mongo": "0.0.2"
   },
   "readme": "timtam log receiver"
 }
