@@ -24,19 +24,19 @@ describe('file transport', function() {
 		let logMessage = {
 			data: 'test message'
 		};
-		fileTransport.cacheMax = 2;
 		fileTransport.write(appName, logMessage);
 		fileTransport.write(appName, logMessage);
-		fileTransport.close(appName);
 		let logMessageStr = JSON.stringify(logMessage);
-		fs.readFile(logFile, 'utf-8', function(err, text) {
-			removeLogFile();
-			if (err) {
-				done(err);
-			} else {
-				assert.equal(text, logMessageStr + '\n' + logMessageStr + '\n');
-				done();
-			}
+		fileTransport.close(appName, function() {
+			fs.readFile(logFile, 'utf-8', function(err, text) {
+				removeLogFile();
+				if (err) {
+					done(err);
+				} else {
+					assert.equal(text, logMessageStr + '\n' + logMessageStr + '\n');
+					done();
+				}
+			});
 		});
 	});
 });

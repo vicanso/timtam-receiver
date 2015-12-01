@@ -1,7 +1,7 @@
 {
   "name": "timtam-receiver",
   "description": "timtam log receiver",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": {
     "name": "vicanso 小墨鱼",
     "email": "vicansocanbico@gmail.com"
@@ -18,7 +18,6 @@
   "main": "./lib/receiver",
   "readmeFilename": "README.md",
   "dependencies": {
-    "linebyline": "^1.1.0",
     "lodash": "^3.10.1",
     "mkdirp": "^0.5.1"
   },
