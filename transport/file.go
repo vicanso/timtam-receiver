@@ -1,8 +1,10 @@
 package transport
 
 import (
+	"archive/zip"
 	log "github.com/Sirupsen/logrus"
 	"github.com/tj/go-debug"
+	"io"
 	"os"
 	"time"
 )
@@ -46,6 +48,14 @@ func getFileLog(filePath string) FileTransport {
 		if err != nil {
 			log.Error("Close file fail:", err)
 		}
+
+		err = zipFile(tmp.file, tmp.file+".zip")
+		if err != nil {
+			log.Error("archive file fail:", err)
+		} else {
+			log.Info("archive file success")
+		}
+
 		needOpenFile = true
 	}
 
@@ -55,8 +65,44 @@ func getFileLog(filePath string) FileTransport {
 			log.Error("Open file fail:", err)
 			return emptyFileTransport
 		}
-		log.Info("Open file fot log append success, file:", file)
+		log.Info("Open file for log append success, file:", file)
 		fileTransportMap[filePath] = FileTransport{file, fd}
 	}
 	return fileTransportMap[filePath]
+}
+
+func zipFile(src, dst string) error {
+	zipFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer zipFile.Close()
+
+	archive := zip.NewWriter(zipFile)
+	defer archive.Close()
+
+	info, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+	header.Method = zip.Deflate
+
+	writer, err := archive.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+
+	reader, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	_, err = io.Copy(writer, reader)
+	return err
 }
