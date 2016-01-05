@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"flag"
 	log "github.com/Sirupsen/logrus"
-	"github.com/tj/go-debug"
+	. "github.com/tj/go-debug"
 	"io"
 	"net"
 	"os"
@@ -16,10 +16,12 @@ import (
 var host = flag.String("host", "0.0.0.0", "host")
 var port = flag.String("port", "7001", "port")
 var logPath = flag.String("logPath", "/data/logs", "logPath")
-var debugLog = debug.Debug("timtam-receiver")
+var archivePath = flag.String("archivePath", "/data/logs", "archivePath")
+var logTagDict = make(map[string]int)
+var debug = Debug("timtam-receiver")
 
 // sub tcp connections
-var subConnDict = make(map[string][]net.Conn)
+var subConnDict = make(map[string][]*net.TCPConn)
 
 func main() {
 	flag.Parse()
@@ -44,9 +46,9 @@ func startUDPServer() {
 	}
 
 	defer conn.Close()
-	log.Info("start udp log server")
+	log.Info("start udp log server, addr:", addr)
 	for {
-		UDPRead(conn)
+		udpRead(conn)
 	}
 }
 
@@ -55,24 +57,30 @@ func startUDPServer() {
  * @return {[type]} [description]
  */
 func startTCPServer() {
-	listener, err := net.Listen("tcp", *host+":"+*port)
+	addr, err := net.ResolveTCPAddr("tcp", *host+":"+*port)
+	if err != nil {
+		log.Error("Can't resolve tcp address, ", err)
+		os.Exit(1)
+	}
+	listener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		log.Error("tcp listening, ", err)
 		os.Exit(1)
 	}
 	defer listener.Close()
-	log.Info("start tcp log server")
+	log.Info("start tcp log server, addr:", addr)
 	for {
 		//wait for client
-		conn, err := listener.Accept()
+		conn, err := listener.AcceptTCP()
 		if err != nil {
 			log.Error("connection error, ", err)
 		}
-		go TCPRead(conn)
+		sendLogTags(conn)
+		go tcpRead(conn)
 	}
 }
 
-func TCPRead(conn net.Conn) {
+func tcpRead(conn *net.TCPConn) {
 	// Close the connection when you're done with it.
 	defer conn.Close()
 	for {
@@ -112,12 +120,12 @@ func TCPRead(conn net.Conn) {
 /**
  * addSubConn 添加sub connection
  * @param {[type]} name string   [description]
- * @param {[type]} conn net.Conn [description]
+ * @param {[type]} conn *net.TCPConn [description]
  */
-func addSubConn(name string, conn net.Conn) {
+func addSubConn(name string, conn *net.TCPConn) {
 	arr := subConnDict[name]
 	if arr == nil {
-		arr = make([]net.Conn, 0, 10)
+		arr = make([]*net.TCPConn, 0, 10)
 	}
 	arr = append(arr, conn)
 	subConnDict[name] = arr
@@ -126,10 +134,10 @@ func addSubConn(name string, conn net.Conn) {
 /**
  * removeSubConn 删除sub connection
  * @param  {[type]} name string        [description]
- * @param  {[type]} conn net.Conn      [description]
+ * @param  {[type]} conn *net.TCPConn      [description]
  * @return {[type]}      [description]
  */
-func removeSubConn(name string, conn net.Conn) {
+func removeSubConn(name string, conn *net.TCPConn) {
 	if name == "*" {
 		for n := range subConnDict {
 			removeSubConn(n, conn)
@@ -148,11 +156,34 @@ func removeSubConn(name string, conn net.Conn) {
 	}
 }
 
+func addTag(app string) {
+	logTagDict[app]++
+	if logTagDict[app] == 1 {
+		for n := range subConnDict {
+			for _, conn := range subConnDict[n] {
+				sendLogTags(conn)
+			}
+		}
+	}
+}
+
+func sendLogTags(conn *net.TCPConn) {
+	tags := ""
+	for key, _ := range logTagDict {
+		tags += (key + ",")
+	}
+	if len(tags) != 0 {
+		buf := []byte("LOG-TAGS\t" + tags)
+		buf[len(buf)-1] = 0
+		conn.Write(buf)
+	}
+}
+
 /**
- * [UDPRead description]
+ * [udpRead description]
  * @param {[type]} conn *net.UDPConn [description]
  */
-func UDPRead(conn *net.UDPConn) {
+func udpRead(conn *net.UDPConn) {
 	data := make([]byte, 1500)
 	total, _, err := conn.ReadFromUDP(data)
 	if err != nil {
@@ -167,12 +198,15 @@ func UDPRead(conn *net.UDPConn) {
 		return
 	}
 	name := string(data[:index])
+	addTag(name)
+
 	filePath := path.Join(*logPath, name)
+	fileArchivePath := path.Join(*archivePath, name)
 	buf := data[index+1 : total]
-	debugLog("name:%s, buf:%s", name, buf)
+	debug("name:%s, buf:%s", name, buf)
 	for _, tcpConn := range subConnDict[name] {
 		tcpConn.Write(data[:total+1])
 	}
 
-	go transport.WriteFile(filePath, buf)
+	go transport.WriteFile(filePath, fileArchivePath, buf)
 }

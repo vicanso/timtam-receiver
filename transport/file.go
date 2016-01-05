@@ -3,24 +3,24 @@ package transport
 import (
 	"archive/zip"
 	log "github.com/Sirupsen/logrus"
-	"github.com/tj/go-debug"
+	. "github.com/tj/go-debug"
 	"io"
 	"os"
 	"time"
 )
 
 type FileTransport struct {
-	file string
-	fd   *os.File
+	file        string
+	archiveFile string
+	fd          *os.File
 }
 
-var fileTransportMap = map[string]FileTransport{}
-var emptyFileTransport = FileTransport{}
-var debugLog = debug.Debug("timtam-receiver")
+var fileTransportMap = make(map[string]*FileTransport)
+var debug = Debug("timtam-receiver")
 
-func WriteFile(filePath string, buf []byte) {
-	tmp := getFileLog(filePath)
-	if tmp == emptyFileTransport {
+func WriteFile(filePath string, archivePath string, buf []byte) {
+	tmp := getFileLog(filePath, archivePath)
+	if tmp == nil {
 		return
 	}
 	_, err := tmp.fd.Write(append(buf[:], '\n'))
@@ -29,18 +29,26 @@ func WriteFile(filePath string, buf []byte) {
 	}
 }
 
-func getFileLog(filePath string) FileTransport {
+func getFileLog(filePath string, archivePath string) *FileTransport {
 	now := time.Now()
 	date := now.Format("2006-01-02")
 	file := filePath + "/" + date
-	debugLog("file:%s", file)
+	archiveFile := archivePath + "/" + date + ".zip"
+	debug("file:%s, archiveFile:%s", file, archiveFile)
 	tmp := fileTransportMap[filePath]
 	needOpenFile := false
-	if tmp == emptyFileTransport {
+	if tmp == nil {
 		err := os.MkdirAll(filePath, 0777)
 		if err != nil {
 			log.Error("mkdir fail:", err)
-			return emptyFileTransport
+			return nil
+		}
+		if filePath != archivePath {
+			err := os.MkdirAll(archivePath, 0777)
+			if err != nil {
+				log.Error("mkdir fail:", err)
+				return nil
+			}
 		}
 		needOpenFile = true
 	} else if tmp.file != file {
@@ -49,7 +57,7 @@ func getFileLog(filePath string) FileTransport {
 			log.Error("Close file fail:", err)
 		}
 
-		err = zipFile(tmp.file, tmp.file+".zip")
+		err = zipFile(tmp.file, tmp.archiveFile)
 		if err != nil {
 			log.Error("archive file fail:", err)
 		} else {
@@ -63,10 +71,10 @@ func getFileLog(filePath string) FileTransport {
 		fd, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 		if err != nil {
 			log.Error("Open file fail:", err)
-			return emptyFileTransport
+			return nil
 		}
 		log.Info("Open file for log append success, file:", file)
-		fileTransportMap[filePath] = FileTransport{file, fd}
+		fileTransportMap[filePath] = &FileTransport{file, archiveFile, fd}
 	}
 	return fileTransportMap[filePath]
 }
