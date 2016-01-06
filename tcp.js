@@ -61,7 +61,15 @@ class Client {
 			const arr = str.split('\t');
 			const topic = arr[0];
 			if (topic === 'LOG-TAGS') {
-				emiter.emit('tags', arr[1].split(','));
+				let tagInfos = _.map(arr[1].split(','), (str) => {
+					let arr = str.split('|');
+					return {
+						name: arr[0],
+						createdAt: parseInt(arr[1]),
+						count: parseInt(arr[2])
+					};
+				});
+				emiter.emit('tags', tagInfos);
 			} else {
 				emiter.emit('data', topic, arr[1]);
 			}
@@ -105,14 +113,14 @@ class Client {
 
 module.exports = Client;
 
-// const client = new Client();
-// client.sub('timtam');
-// client.sub('timtam');
-// client.on('data', (topic, msg) => {
-// 	// console.dir(topic);
-// 	// console.dir(msg);
-// 	// client.unsub('timtam');
-// });
-// client.on('tags', (tags) => {
-// 	console.dir(tags);
-// });
+const client = new Client();
+client.sub('timtam');
+client.sub('timtam');
+client.on('data', (topic, msg) => {
+	// console.dir(topic);
+	// console.dir(msg);
+	// client.unsub('timtam');
+});
+client.on('tags', (tags) => {
+	console.dir(tags);
+});

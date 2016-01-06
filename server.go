@@ -11,14 +11,22 @@ import (
 	"net"
 	"os"
 	"path"
+	"strconv"
+	"time"
 )
+
+type LogInfo struct {
+	createdAt int64
+	count     int
+}
 
 var host = flag.String("host", "0.0.0.0", "host")
 var port = flag.String("port", "7001", "port")
 var logPath = flag.String("logPath", "/data/logs", "logPath")
-var archivePath = flag.String("archivePath", "/data/logs", "archivePath")
-var logTagDict = make(map[string]int)
+var archivePath = flag.String("archivePath", "/data/logs-archive", "archivePath")
+var logTagDict = make(map[string]*LogInfo)
 var debug = Debug("timtam-receiver")
+var fileTransportDict = make(map[string]*transport.File)
 
 // sub tcp connections
 var subConnDict = make(map[string][]*net.TCPConn)
@@ -80,6 +88,11 @@ func startTCPServer() {
 	}
 }
 
+/**
+ * tcpRead TCP数据读取处理
+ * @param  {[type]} conn *net.TCPConn  [description]
+ * @return {[type]}      [description]
+ */
 func tcpRead(conn *net.TCPConn) {
 	// Close the connection when you're done with it.
 	defer conn.Close()
@@ -156,21 +169,35 @@ func removeSubConn(name string, conn *net.TCPConn) {
 	}
 }
 
+/**
+ * addTag 记录发送过来日志的tag及日志接收条数
+ * @param {[type]} app string [description]
+ */
 func addTag(app string) {
-	logTagDict[app]++
-	if logTagDict[app] == 1 {
+	info := logTagDict[app]
+	if info == nil {
+		info = &LogInfo{time.Now().Unix(), 0}
+		logTagDict[app] = info
+	}
+	if info.count == 0 {
 		for n := range subConnDict {
 			for _, conn := range subConnDict[n] {
 				sendLogTags(conn)
 			}
 		}
 	}
+	info.count++
 }
 
+/**
+ * sendLogTags 通过TCP发送日志tag相关信息
+ * @param  {[type]} conn *net.TCPConn  [description]
+ * @return {[type]}      [description]
+ */
 func sendLogTags(conn *net.TCPConn) {
 	tags := ""
-	for key, _ := range logTagDict {
-		tags += (key + ",")
+	for key, info := range logTagDict {
+		tags += (key + "|" + strconv.FormatInt(info.createdAt, 10) + "|" + strconv.Itoa(info.count) + ",")
 	}
 	if len(tags) != 0 {
 		buf := []byte("LOG-TAGS\t" + tags)
@@ -180,7 +207,7 @@ func sendLogTags(conn *net.TCPConn) {
 }
 
 /**
- * [udpRead description]
+ * udpRead 读取UDP数据并处理
  * @param {[type]} conn *net.UDPConn [description]
  */
 func udpRead(conn *net.UDPConn) {
@@ -200,13 +227,18 @@ func udpRead(conn *net.UDPConn) {
 	name := string(data[:index])
 	addTag(name)
 
-	filePath := path.Join(*logPath, name)
-	fileArchivePath := path.Join(*archivePath, name)
 	buf := data[index+1 : total]
 	debug("name:%s, buf:%s", name, buf)
 	for _, tcpConn := range subConnDict[name] {
 		tcpConn.Write(data[:total+1])
 	}
 
-	go transport.WriteFile(filePath, fileArchivePath, buf)
+	fileTransport := fileTransportDict[name]
+	if fileTransport == nil {
+		fileTransport = new(transport.File)
+		fileTransport.SetLogPath(path.Join(*logPath, name))
+		fileTransport.SetArchivePath(path.Join(*archivePath, name))
+		fileTransportDict[name] = fileTransport
+	}
+	go fileTransport.Write(buf)
 }

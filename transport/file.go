@@ -9,80 +9,80 @@ import (
 	"time"
 )
 
-type FileTransport struct {
-	file        string
-	archiveFile string
+type File struct {
+	logPath     string
+	archivePath string
+	date        string
 	fd          *os.File
 }
 
-var fileTransportMap = make(map[string]*FileTransport)
+var fileTransportMap = make(map[string]*File)
 var debug = Debug("timtam-receiver")
 
-func WriteFile(filePath string, archivePath string, buf []byte) {
-	tmp := getFileLog(filePath, archivePath)
-	if tmp == nil {
-		return
-	}
-	_, err := tmp.fd.Write(append(buf[:], '\n'))
-	if err != nil {
-		log.Error("Write log fail, file:", filePath)
-	}
-}
-
-func getFileLog(filePath string, archivePath string) *FileTransport {
+func (self *File) Write(buf []byte) {
 	now := time.Now()
 	date := now.Format("2006-01-02")
-	file := filePath + "/" + date
-	archiveFile := archivePath + "/" + date + ".zip"
-	debug("file:%s, archiveFile:%s", file, archiveFile)
-	tmp := fileTransportMap[filePath]
-	needOpenFile := false
-	if tmp == nil {
-		err := os.MkdirAll(filePath, 0777)
+	// 第一次写数据，先确保logPath已经生成
+	if self.date == "" {
+		err := os.MkdirAll(self.logPath, 0777)
 		if err != nil {
 			log.Error("mkdir fail:", err)
-			return nil
+			return
 		}
-		if filePath != archivePath {
-			err := os.MkdirAll(archivePath, 0777)
-			if err != nil {
-				log.Error("mkdir fail:", err)
-				return nil
-			}
-		}
-		needOpenFile = true
-	} else if tmp.file != file {
-		err := tmp.fd.Close()
-		if err != nil {
-			log.Error("Close file fail:", err)
-		}
-
-		err = zipFile(tmp.file, tmp.archiveFile)
-		if err != nil {
-			log.Error("archive file fail:", err)
-		} else {
-			log.Info("archive file success")
-		}
-
-		needOpenFile = true
 	}
-
-	if needOpenFile {
+	if self.date != date {
+		// 当日期变化时，将前一天的日志归档 archive file
+		err := self.zip()
+		if err != nil {
+			log.Error("archive fail:", err)
+		}
+		self.date = date
+		self.fd = nil
+	}
+	if self.fd == nil {
+		// 打开文件，用于写日志
+		file := self.logPath + "/" + self.date
 		fd, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 		if err != nil {
 			log.Error("Open file fail:", err)
-			return nil
+			return
 		}
+		self.fd = fd
 		log.Info("Open file for log append success, file:", file)
-		fileTransportMap[filePath] = &FileTransport{file, archiveFile, fd}
 	}
-	return fileTransportMap[filePath]
+	self.fd.Write(append(buf, '\n'))
 }
 
-func zipFile(src, dst string) error {
+func (self *File) SetLogPath(logPath string) {
+	self.logPath = logPath
+}
+
+func (self *File) SetArchivePath(archivePath string) {
+	self.archivePath = archivePath
+}
+
+func (self *File) zip() (err error) {
+	if self.date == "" {
+		return
+	}
+
+	err = os.MkdirAll(self.archivePath, 0777)
+	if err != nil {
+		return
+	}
+
+	file := self.logPath + "/" + self.date
+	archiveFile := self.archivePath + "/" + self.date + ".zip"
+
+	go zipFile(file, archiveFile)
+	return
+}
+
+func zipFile(src, dst string) {
 	zipFile, err := os.Create(dst)
 	if err != nil {
-		return err
+		log.Error("create archive fail:", err)
+		return
 	}
 	defer zipFile.Close()
 
@@ -91,26 +91,34 @@ func zipFile(src, dst string) error {
 
 	info, err := os.Stat(src)
 	if err != nil {
-		return err
+		log.Error("stat src file fail:", err)
+		return
 	}
 
 	header, err := zip.FileInfoHeader(info)
 	if err != nil {
-		return err
+		log.Error("file info header fail:", err)
+		return
 	}
 	header.Method = zip.Deflate
 
 	writer, err := archive.CreateHeader(header)
 	if err != nil {
-		return err
+		log.Error("create header fail:", err)
+		return
 	}
 
 	reader, err := os.Open(src)
 	if err != nil {
-		return err
+		log.Error("open file fail:", err)
+		return
 	}
 	defer reader.Close()
 
 	_, err = io.Copy(writer, reader)
-	return err
+	if err != nil {
+		log.Error("copy file fail:", err)
+		return
+	}
+	log.Info("archive " + src + " to " + dst + " success")
 }

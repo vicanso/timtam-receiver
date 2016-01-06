@@ -1,1 +1,1 @@
-docker run -d --restart=always -p 7001:7001 -p 7001:7001/udp -v /data/logs:/data/logs timtam-receiver
+docker run -d --restart=always -p 7001:7001 -p 7001:7001/udp -v /data:/data timtam-receiver
