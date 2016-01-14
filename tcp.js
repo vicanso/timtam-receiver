@@ -2,17 +2,22 @@
 const net = require('net');
 const _ = require('lodash');
 const EventEmitter = require('events');
-
+const url = require('url');
 class Client {
-	constructor(options) {
-		options = _.extend({
-			port: 7001,
-			host: '127.0.0.1'
-		}, options)
+	constructor(logServer) {
+		const urlInfo = url.parse(logServer || 'timtam://127.0.0.1:6100');
+		const options = {
+			port: parseInt(urlInfo.port),
+			host: urlInfo.hostname
+		};
 		this._connect(options);
 		this._bufRest = null;
 		this._subTags = [];
+		this._tagInfos = [];
 		this.emiter = new EventEmitter();
+	}
+	tags() {
+		return this._tagInfos;
 	}
 	sub(tag) {
 		if (_.indexOf(this._subTags, tag) === -1) {
@@ -61,15 +66,19 @@ class Client {
 			const arr = str.split('\t');
 			const topic = arr[0];
 			if (topic === 'LOG-TAGS') {
-				let tagInfos = _.map(arr[1].split(','), (str) => {
-					let arr = str.split('|');
-					return {
-						name: arr[0],
-						createdAt: parseInt(arr[1]),
-						count: parseInt(arr[2])
-					};
-				});
-				emiter.emit('tags', tagInfos);
+				if (!arr[1]) {
+					this._tagInfos = [];
+				} else {
+					this._tagInfos = _.map(arr[1].split(','), (str) => {
+						let arr = str.split('|');
+						return {
+							name: arr[0],
+							createdAt: parseInt(arr[1]),
+							count: parseInt(arr[2])
+						};
+					});
+				}
+				emiter.emit('tags', this._tagInfos);
 			} else {
 				emiter.emit('data', topic, arr[1]);
 			}
@@ -85,6 +94,9 @@ class Client {
 		const client = net.connect({
 			port: options.port,
 			host: options.host
+		});
+		client.on('connect', () => {
+			console.info(`tcp://${options.host}:${options.port} connect`);
 		});
 		client.on('data', buf => {
 			this._handleBuffer(buf);
@@ -114,8 +126,8 @@ class Client {
 module.exports = Client;
 
 const client = new Client();
-client.sub('timtam');
-client.sub('timtam');
+// client.sub('timtam');
+// client.sub('timtam');
 client.on('data', (topic, msg) => {
 	// console.dir(topic);
 	// console.dir(msg);

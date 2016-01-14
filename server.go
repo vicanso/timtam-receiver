@@ -7,7 +7,6 @@ import (
 	"flag"
 	log "github.com/Sirupsen/logrus"
 	. "github.com/tj/go-debug"
-	"io"
 	"net"
 	"os"
 	"path"
@@ -22,14 +21,48 @@ type LogInfo struct {
 
 var host = flag.String("host", "0.0.0.0", "host")
 var port = flag.String("port", "7001", "port")
+
+// 日志保存目录
 var logPath = flag.String("logPath", "/data/logs", "logPath")
+
+// 日志归档目录
 var archivePath = flag.String("archivePath", "/data/logs-archive", "archivePath")
-var logTagDict = make(map[string]*LogInfo)
 var debug = Debug("timtam-receiver")
+
+// 保存应用相关日志信息
+// {
+// 	日志名称
+// 	name : {
+// 		创建时间
+// 		createdAt: int64,
+// 		日志接收条数
+// 		count: int
+// 	}
+// }
+var logTagDict = make(map[string]*LogInfo)
+
+// {
+// 	日志名称
+// 	name : {
+// 		日志存放目录
+// 		logPath: string,
+// 		日志归档目录
+// 		archivePath: string,
+// 		当天日期 YYYY-MM-DD，用于生成日志文件名
+// 		date: string,
+// 		fd: *os.File
+// 	}
+// }
 var fileTransportDict = make(map[string]*transport.File)
 
-// sub tcp connections
+// {
+// 	日志名称：sub该日志的tcp连接
+// 	name : []
+// }
 var subConnDict = make(map[string][]*net.TCPConn)
+
+// 保存连接的sub tcp connections
+var tcpConnArr = make([]*net.TCPConn, 0, 10)
 
 func main() {
 	flag.Parse()
@@ -83,7 +116,9 @@ func startTCPServer() {
 		if err != nil {
 			log.Error("connection error, ", err)
 		}
+		log.Info("new tcp connection")
 		sendLogTags(conn)
+		tcpConnArr = append(tcpConnArr, conn)
 		go tcpRead(conn)
 	}
 }
@@ -103,28 +138,23 @@ func tcpRead(conn *net.TCPConn) {
 		total, err := conn.Read(buf)
 
 		if err != nil {
-			if err == io.EOF {
-				log.Info("Connection EOF")
-				removeSubConn("*", conn)
-				return
+			removeTcpConn(conn)
+			log.Error("tcp connection error:", err)
+			return
+		}
+		cmdList := bytes.Split(buf[:total], []byte("\r\n"))
+		for _, cmd := range cmdList {
+			if len(cmd) == 0 {
+				continue
 			}
-			log.Error("reading error, ", err)
-			break
-		} else {
-			cmdList := bytes.Split(buf[:total], []byte("\r\n"))
-			for _, cmd := range cmdList {
-				if len(cmd) == 0 {
-					continue
-				}
-				name := string(cmd[1:])
-				log.Info(string(cmd))
-				if cmd[0] == 43 {
-					// '+' == 43
-					addSubConn(name, conn)
-				} else if cmd[0] == 45 {
-					// '-' == 43
-					removeSubConn(name, conn)
-				}
+			name := string(cmd[1:])
+			log.Info(string(cmd))
+			if cmd[0] == 43 {
+				// '+' == 43
+				addSubConn(name, conn)
+			} else if cmd[0] == 45 {
+				// '-' == 43
+				removeSubConn(name, conn)
 			}
 		}
 	}
@@ -169,6 +199,21 @@ func removeSubConn(name string, conn *net.TCPConn) {
 	}
 }
 
+func removeTcpConn(conn *net.TCPConn) {
+
+	// 从tcpConnArr中删除connection
+	index := -1
+	for i, tmp := range tcpConnArr {
+		if tmp == conn {
+			index = i
+		}
+	}
+	if index != -1 {
+		tcpConnArr = append(tcpConnArr[:index], tcpConnArr[index+1:]...)
+	}
+	removeSubConn("*", conn)
+}
+
 /**
  * addTag 记录发送过来日志的tag及日志接收条数
  * @param {[type]} app string [description]
@@ -180,10 +225,9 @@ func addTag(app string) {
 		logTagDict[app] = info
 	}
 	if info.count == 0 {
-		for n := range subConnDict {
-			for _, conn := range subConnDict[n] {
-				sendLogTags(conn)
-			}
+		log.Info("new log tag:" + app)
+		for _, conn := range tcpConnArr {
+			sendLogTags(conn)
 		}
 	}
 	info.count++
@@ -199,11 +243,9 @@ func sendLogTags(conn *net.TCPConn) {
 	for key, info := range logTagDict {
 		tags += (key + "|" + strconv.FormatInt(info.createdAt, 10) + "|" + strconv.Itoa(info.count) + ",")
 	}
-	if len(tags) != 0 {
-		buf := []byte("LOG-TAGS\t" + tags)
-		buf[len(buf)-1] = 0
-		conn.Write(buf)
-	}
+	buf := []byte("LOG-TAGS\t" + tags)
+	buf[len(buf)-1] = 0
+	conn.Write(buf)
 }
 
 /**
