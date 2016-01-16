@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -55,14 +56,26 @@ var logTagDict = make(map[string]*LogInfo)
 // }
 var fileTransportDict = make(map[string]*transport.File)
 
-// {
-// 	日志名称：sub该日志的tcp连接
-// 	name : []
-// }
-var subConnDict = make(map[string][]*net.TCPConn)
+type SubConnection struct {
+	// {
+	// 	日志名称：sub该日志的tcp连接
+	// 	name : []
+	// }
+	list map[string][]*net.TCPConn
+	mu   *sync.RWMutex
+}
 
-// 保存连接的sub tcp connections
-var tcpConnArr = make([]*net.TCPConn, 0, 10)
+var subConnection = SubConnection{make(map[string][]*net.TCPConn), new(sync.RWMutex)}
+
+type TCPConnection struct {
+	// 保存连接的sub tcp connections
+	list []*net.TCPConn
+	mu   *sync.RWMutex
+}
+
+var tcpConnection = TCPConnection{make([]*net.TCPConn, 0, 10), new(sync.RWMutex)}
+
+// var tcpConnArr = make([]*net.TCPConn, 0, 10)
 
 func main() {
 	flag.Parse()
@@ -118,7 +131,9 @@ func startTCPServer() {
 		}
 		log.Info("new tcp connection")
 		sendLogTags(conn)
-		tcpConnArr = append(tcpConnArr, conn)
+		tcpConnection.mu.Lock()
+		tcpConnection.list = append(tcpConnection.list, conn)
+		tcpConnection.mu.Unlock()
 		go tcpRead(conn)
 	}
 }
@@ -166,12 +181,15 @@ func tcpRead(conn *net.TCPConn) {
  * @param {[type]} conn *net.TCPConn [description]
  */
 func addSubConn(name string, conn *net.TCPConn) {
-	arr := subConnDict[name]
+	subConnection.mu.Lock()
+	list := subConnection.list
+	arr := list[name]
 	if arr == nil {
 		arr = make([]*net.TCPConn, 0, 10)
 	}
 	arr = append(arr, conn)
-	subConnDict[name] = arr
+	list[name] = arr
+	subConnection.mu.Unlock()
 }
 
 /**
@@ -182,12 +200,14 @@ func addSubConn(name string, conn *net.TCPConn) {
  */
 func removeSubConn(name string, conn *net.TCPConn) {
 	if name == "*" {
-		for n := range subConnDict {
+		for n := range subConnection.list {
 			removeSubConn(n, conn)
 		}
 		return
 	}
-	arr := subConnDict[name]
+	subConnection.mu.Lock()
+	list := subConnection.list
+	arr := list[name]
 	index := -1
 	for i, tmp := range arr {
 		if tmp == conn {
@@ -195,22 +215,26 @@ func removeSubConn(name string, conn *net.TCPConn) {
 		}
 	}
 	if index != -1 {
-		subConnDict[name] = append(arr[:index], arr[index+1:]...)
+		list[name] = append(arr[:index], arr[index+1:]...)
 	}
+	subConnection.mu.Unlock()
 }
 
 func removeTcpConn(conn *net.TCPConn) {
 
 	// 从tcpConnArr中删除connection
+	tcpConnection.mu.Lock()
+	list := tcpConnection.list
 	index := -1
-	for i, tmp := range tcpConnArr {
+	for i, tmp := range list {
 		if tmp == conn {
 			index = i
 		}
 	}
 	if index != -1 {
-		tcpConnArr = append(tcpConnArr[:index], tcpConnArr[index+1:]...)
+		tcpConnection.list = append(list[:index], list[index+1:]...)
 	}
+	tcpConnection.mu.Unlock()
 	removeSubConn("*", conn)
 }
 
@@ -226,7 +250,7 @@ func addTag(app string) {
 	}
 	if info.count == 0 {
 		log.Info("new log tag:" + app)
-		for _, conn := range tcpConnArr {
+		for _, conn := range tcpConnection.list {
 			sendLogTags(conn)
 		}
 	}
@@ -271,7 +295,7 @@ func udpRead(conn *net.UDPConn) {
 
 	buf := data[index+1 : total]
 	debug("name:%s, buf:%s", name, buf)
-	for _, tcpConn := range subConnDict[name] {
+	for _, tcpConn := range subConnection.list[name] {
 		tcpConn.Write(data[:total+1])
 	}
 
