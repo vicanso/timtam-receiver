@@ -1,6 +1,6 @@
 FROM ubuntu
 
-EXPOSE 7001
+EXPOSE 7349
 
 ADD ./timtam-receiver /
 

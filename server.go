@@ -21,7 +21,7 @@ type LogInfo struct {
 }
 
 var host = flag.String("host", "0.0.0.0", "host")
-var port = flag.String("port", "7001", "port")
+var port = flag.String("port", "7349", "port")
 
 // 日志保存目录
 var logPath = flag.String("logPath", "/data/logs", "logPath")
