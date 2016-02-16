@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM alpine
 
 EXPOSE 7349
 
