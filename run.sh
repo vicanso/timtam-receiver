@@ -1,1 +1,1 @@
-docker run -d --restart=always -p 7349:7349 -p 7349:7349/udp -v /data:/data timtam-receiver
+docker run -d --restart=always -p 7349:7349 -p 7349:7349/udp -v /data:/data vicanso/timtam-receiver
