@@ -79,7 +79,7 @@ var tcpConnection = TCPConnection{make([]*net.TCPConn, 0, 10), new(sync.RWMutex)
 
 func main() {
 	flag.Parse()
-	go startTCPServer()
+	// go startTCPServer()
 	startUDPServer()
 }
 
