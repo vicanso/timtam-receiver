@@ -4,4 +4,4 @@ EXPOSE 7349
 
 ADD ./timtam-receiver /
 
-CMD ./timtam-receiver >> /data/timtam-log 2>&1
+CMD ./timtam-receiver >> /logs/timtam-log 2>&1
