@@ -3,23 +3,27 @@ package transport
 import (
 	"log"
 	"os"
+	"sync"
 	"time"
-
-	. "github.com/tj/go-debug"
 )
 
+// File 文件transport
 type File struct {
 	logPath string
 	date    string
 	fd      *os.File
+	m       sync.Mutex
 }
 
 var fileTransportMap = make(map[string]*File)
-var debug = Debug("timtam-receiver")
 
+// Write 写数据
 func (ins *File) Write(buf []byte) {
 	now := time.Now()
 	date := now.Format("2006-01-02")
+	ins.m.Lock()
+	defer ins.m.Unlock()
+
 	// 第一次写数据，先确保logPath已经生成
 	if ins.date == "" {
 		err := os.MkdirAll(ins.logPath, 0777)
@@ -49,6 +53,7 @@ func (ins *File) Write(buf []byte) {
 	ins.fd.Write(append(buf, '\n'))
 }
 
+// SetLogPath 设置日志目录
 func (ins *File) SetLogPath(logPath string) {
 	ins.logPath = logPath
 }

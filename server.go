@@ -10,7 +10,7 @@ import (
 	"path"
 
 	"./transport"
-	. "github.com/tj/go-debug"
+	"github.com/visionmedia/go-debug"
 )
 
 var host = flag.String("host", "0.0.0.0", "host")
@@ -19,7 +19,7 @@ var port = flag.String("port", "7349", "port")
 // 日志保存目录
 var logPath = flag.String("logPath", "/logs", "logPath")
 
-var debug = Debug("timtam-receiver")
+var debugLog = debug.Debug("timtam-receiver")
 
 // {
 // 	日志名称
@@ -35,7 +35,6 @@ var fileTransportDict = make(map[string]*transport.File)
 
 func main() {
 	flag.Parse()
-	// go startTCPServer()
 	startUDPServer()
 }
 
@@ -83,11 +82,11 @@ func udpRead(conn *net.UDPConn) {
 	name := string(data[:index])
 
 	buf := data[index+1 : total]
-	debug("name:%s, buf:%s", name, buf)
+	debugLog("name:%s, buf:%s", name, buf)
 
 	fileTransport := fileTransportDict[name]
 	if fileTransport == nil {
-		fileTransport = new(transport.File)
+		fileTransport = &transport.File{}
 		fileTransport.SetLogPath(path.Join(*logPath, name))
 		fileTransportDict[name] = fileTransport
 	}
