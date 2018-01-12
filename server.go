@@ -10,6 +10,7 @@ import (
 	"path"
 
 	"./transport"
+	"github.com/oxtoacart/bpool"
 	"github.com/visionmedia/go-debug"
 )
 
@@ -18,23 +19,22 @@ var port = flag.String("port", "7349", "port")
 
 // 日志保存目录
 var logPath = flag.String("logPath", "/logs", "logPath")
+var poolSize = flag.Uint("poolSize", 4096, "poolSize")
 
 var debugLog = debug.Debug("timtam-receiver")
 
-// {
-// 	日志名称
-// 	name : {
-// 		日志存放目录
-// 		logPath: string,
-// 		当天日期 YYYY-MM-DD，用于生成日志文件名
-// 		date: string,
-// 		fd: *os.File
-// 	}
-// }
 var fileTransportDict = make(map[string]*transport.File)
+
+var bytePool *bpool.BytePool
+var requestCount uint32
+
+const (
+	pageSize = 1500
+)
 
 func main() {
 	flag.Parse()
+	bytePool = bpool.NewBytePool(pageSize, int(*poolSize))
 	startUDPServer()
 }
 
@@ -55,6 +55,11 @@ func startUDPServer() {
 	}
 
 	defer conn.Close()
+	defer func() {
+		for _, fileTransport := range fileTransportDict {
+			fileTransport.Close()
+		}
+	}()
 	log.Println("start udp log server, addr:", addr)
 	for {
 		udpRead(conn)
@@ -66,10 +71,11 @@ func startUDPServer() {
  * @param {[type]} conn *net.UDPConn [description]
  */
 func udpRead(conn *net.UDPConn) {
-	data := make([]byte, 1500)
+	data := bytePool.Get()
 	total, _, err := conn.ReadFromUDP(data)
 	if err != nil {
 		log.Println("failed to read UDP message, ", err)
+		bytePool.Put(data)
 		return
 	}
 
@@ -77,6 +83,7 @@ func udpRead(conn *net.UDPConn) {
 	index := bytes.IndexByte(data, 9)
 
 	if index == -1 {
+		bytePool.Put(data)
 		return
 	}
 	name := string(data[:index])
@@ -90,5 +97,8 @@ func udpRead(conn *net.UDPConn) {
 		fileTransport.SetLogPath(path.Join(*logPath, name))
 		fileTransportDict[name] = fileTransport
 	}
-	go fileTransport.Write(buf)
+	go func() {
+		fileTransport.Write(buf)
+		bytePool.Put(data)
+	}()
 }

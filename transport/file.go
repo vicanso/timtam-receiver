@@ -57,3 +57,11 @@ func (ins *File) Write(buf []byte) {
 func (ins *File) SetLogPath(logPath string) {
 	ins.logPath = logPath
 }
+
+// Close 关闭写日志文件
+func (ins *File) Close() error {
+	if ins.fd != nil {
+		return ins.fd.Close()
+	}
+	return nil
+}

@@ -1,0 +1,4 @@
+package: .
+import:
+- package: github.com/oxtoacart/bpool
+- package: github.com/visionmedia/go-debug
