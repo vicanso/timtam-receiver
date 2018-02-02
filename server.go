@@ -9,9 +9,8 @@ import (
 	"os"
 	"path"
 
-	"./transport"
 	"github.com/oxtoacart/bpool"
-	"github.com/tj/go-debug"
+	"github.com/vicanso/timtam-receiver/transport"
 )
 
 var host = flag.String("host", "0.0.0.0", "host")
@@ -21,8 +20,6 @@ var port = flag.String("port", "7349", "port")
 var logPath = flag.String("logPath", "/logs", "logPath")
 var poolSize = flag.Uint("poolSize", 4096, "poolSize")
 var pageSize = flag.Uint("pageSize", 1500, "pageSize")
-
-var debugLog = debug.Debug("timtam-receiver")
 
 var fileTransportDict = make(map[string]*transport.File)
 
@@ -86,7 +83,6 @@ func udpRead(conn *net.UDPConn) {
 	name := string(data[:index])
 
 	buf := data[index+1 : total]
-	debugLog("name:%s, buf:%s", name, buf)
 
 	fileTransport := fileTransportDict[name]
 	if fileTransport == nil {
