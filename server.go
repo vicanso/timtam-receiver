@@ -11,7 +11,7 @@ import (
 
 	"./transport"
 	"github.com/oxtoacart/bpool"
-	"github.com/visionmedia/go-debug"
+	"github.com/tj/go-debug"
 )
 
 var host = flag.String("host", "0.0.0.0", "host")
@@ -20,6 +20,7 @@ var port = flag.String("port", "7349", "port")
 // 日志保存目录
 var logPath = flag.String("logPath", "/logs", "logPath")
 var poolSize = flag.Uint("poolSize", 4096, "poolSize")
+var pageSize = flag.Uint("pageSize", 1500, "pageSize")
 
 var debugLog = debug.Debug("timtam-receiver")
 
@@ -28,13 +29,9 @@ var fileTransportDict = make(map[string]*transport.File)
 var bytePool *bpool.BytePool
 var requestCount uint32
 
-const (
-	pageSize = 1500
-)
-
 func main() {
 	flag.Parse()
-	bytePool = bpool.NewBytePool(pageSize, int(*poolSize))
+	bytePool = bpool.NewBytePool(int(*pageSize), int(*poolSize))
 	startUDPServer()
 }
 
