@@ -12,45 +12,52 @@ type File struct {
 	logPath string
 	date    string
 	fd      *os.File
-	m       sync.Mutex
+	m       sync.RWMutex
 }
 
 var fileTransportMap = make(map[string]*File)
 
+func (ins *File) checkDate() {
+	time.Sleep(60 * time.Second)
+	ins.m.Lock()
+	date := time.Now().Format("2006-01-02")
+	if date != ins.date {
+		ins.Close()
+		ins.fd = nil
+	} else {
+		go ins.checkDate()
+	}
+	ins.m.Unlock()
+}
+
 // Write 写数据
 func (ins *File) Write(buf []byte) {
-	now := time.Now()
-	date := now.Format("2006-01-02")
-	ins.m.Lock()
-	defer ins.m.Unlock()
-
-	// 第一次写数据，先确保logPath已经生成
-	if ins.date == "" {
-		err := os.MkdirAll(ins.logPath, 0777)
-		if err != nil {
-			log.Println("mkdir fail:", err)
-			return
-		}
-	}
-	if ins.date != date {
-		ins.date = date
-		if ins.fd != nil {
-			ins.fd.Close()
-		}
-		ins.fd = nil
-	}
 	if ins.fd == nil {
-		// 打开文件，用于写日志
-		file := ins.logPath + "/" + ins.date
-		fd, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-		if err != nil {
-			log.Println("Open file fail:", err)
-			return
+		ins.m.Lock()
+		defer ins.m.Unlock()
+		if ins.fd == nil {
+			err := os.MkdirAll(ins.logPath, 0777)
+			if err != nil {
+				log.Println("mkdir fail:", err)
+				return
+			}
+			ins.date = time.Now().Format("2006-01-02")
+			file := ins.logPath + "/" + ins.date
+			fd, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+			if err != nil {
+				log.Println("Open file fail:", err)
+				return
+			}
+			ins.fd = fd
+			log.Println("Open file for log append success, file:", file)
+			go ins.checkDate()
 		}
-		ins.fd = fd
-		log.Println("Open file for log append success, file:", file)
+		ins.fd.Write(append(buf, '\n'))
+	} else {
+		ins.m.RLock()
+		ins.fd.Write(append(buf, '\n'))
+		ins.m.RUnlock()
 	}
-	ins.fd.Write(append(buf, '\n'))
 }
 
 // SetLogPath 设置日志目录

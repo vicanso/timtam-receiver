@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/oxtoacart/bpool"
 	"github.com/vicanso/timtam-receiver/transport"
@@ -22,6 +23,7 @@ var poolSize = flag.Uint("poolSize", 4096, "poolSize")
 var pageSize = flag.Uint("pageSize", 1500, "pageSize")
 
 var fileTransportDict = make(map[string]*transport.File)
+var fileTransportMutex = &sync.Mutex{}
 
 var bytePool *bpool.BytePool
 var requestCount uint32
@@ -73,24 +75,33 @@ func udpRead(conn *net.UDPConn) {
 		return
 	}
 
-	// "\t" === 9
-	index := bytes.IndexByte(data, 9)
-
-	if index == -1 {
-		bytePool.Put(data)
-		return
-	}
-	name := string(data[:index])
-
-	buf := data[index+1 : total]
-
-	fileTransport := fileTransportDict[name]
-	if fileTransport == nil {
-		fileTransport = &transport.File{}
-		fileTransport.SetLogPath(path.Join(*logPath, name))
-		fileTransportDict[name] = fileTransport
-	}
 	go func() {
+		// "\t" === 9
+		index := bytes.IndexByte(data, 9)
+
+		if index == -1 {
+			bytePool.Put(data)
+			return
+		}
+		name := string(data[:index])
+
+		buf := data[index+1 : total]
+
+		fileTransport := fileTransportDict[name]
+		// 如果不存在该transport
+		if fileTransport == nil {
+			// 先增加锁
+			fileTransportMutex.Lock()
+			// 再重新做一次判断
+			if fileTransportDict[name] != nil {
+				fileTransport = fileTransportDict[name]
+			} else {
+				fileTransport = &transport.File{}
+				fileTransport.SetLogPath(path.Join(*logPath, name))
+				fileTransportDict[name] = fileTransport
+			}
+			fileTransportMutex.Unlock()
+		}
 		fileTransport.Write(buf)
 		bytePool.Put(data)
 	}()
