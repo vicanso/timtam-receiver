@@ -1,4 +1,4 @@
-GOOS=linux go build
+GOOS=linux go build -o timtam-receiver server.go
 
 docker build -t vicanso/timtam-receiver .
 
