@@ -9,7 +9,7 @@ install:
 
 script:
   - dep ensure
-  - GOOS=linux go build -o timtam-receiver server.go
+  - GOOS=linux GOARCH=amd64 go build -tags netgo -o timtam-receiver server.go
 
 after_success:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
